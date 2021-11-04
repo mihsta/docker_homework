@@ -1,0 +1,27 @@
+# Build image nodejs
+FROM node:16.13-slim AS Build
+
+WORKDIR /app
+
+# COpy app source code
+COPY . /app
+
+
+# Prepair packages & Build app
+COPY package*.json ./
+RUN npm clean-install --only=production --silent && npm run build
+
+# nginx state for serving content
+FROM nginx:1.21.3-alpine as Deploy
+
+# Healthcheck
+HEALTHCHECK --interval=15s --timeout=3s CMD curl -f http://localhost/
+
+# Set working directory to nginx asset directory
+WORKDIR /usr/share/nginx/html
+
+# Copy static assets from builder stage
+COPY --chown=nginx:nginx --from=Build /app/build .
+
+# Containers run nginx with global directives and daemon off
+# ENTRYPOINT ["nginx", "-g", "daemon off;"]
