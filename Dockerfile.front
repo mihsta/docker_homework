@@ -4,11 +4,11 @@ FROM node:16.13-slim AS Build
 WORKDIR /app
 
 # COpy app source code
-COPY . /app
+COPY frontend /app
 
 
 # Prepair packages & Build app
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm clean-install --only=production --silent && npm run build
 
 # nginx state for serving content
@@ -21,7 +21,8 @@ HEALTHCHECK --interval=15s --timeout=3s CMD curl -f http://localhost/
 WORKDIR /usr/share/nginx/html
 
 # Copy static assets from builder stage
-COPY --chown=nginx:nginx --from=Build /app/build .
+COPY --from=Build /app/build .
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Containers run nginx with global directives and daemon off
-# ENTRYPOINT ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["nginx", "-g", "daemon off;"]
