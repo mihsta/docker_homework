@@ -1,21 +1,16 @@
-FROM python:3.8-alpine as prereq
+FROM python:3.10 as backend
 
+ENV LANG C.UTF-8
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-COPY . /app 
+COPY lib_catalog /app 
 
-RUN apk add --no-cache libxml2 libxslt libxml2-dev libxslt-dev postgresql-libs && \
-  apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev && \
-  pip install -r requirements.txt --no-cache-dir && \
-  apk --purge del .build-deps
-
-FROM prereq as backend
-
-#RUN pip install gunicorn
-RUN pip install django-cors-headers
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 HEALTHCHECK --interval=5s --timeout=5s --retries=3 CMD ["wget","-nv","-t1","--spider","http://localhost:8000/admin"]
 
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+EXPOSE 8000
+
+CMD gunicorn -b 8000:8100 django.wsgi
